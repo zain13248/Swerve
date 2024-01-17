@@ -8,6 +8,8 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.ModuleConstants;
 
@@ -21,17 +23,20 @@ public class SwerveModule {
     private final RelativeEncoder turningEncoder;
 
     private final PIDController turningPidController;
+    private final double kAbsoluteEncoderOffset;
+    private final boolean kAbsoluteEncoderReversed;
 
 
 
     private CANcoder absoluteEncoder ;
+    private SwerveModuleState desiredState = new SwerveModuleState(0.0, new Rotation2d());
+
 
 
     public SwerveModule(int driveMotorId, int turningMotorId, boolean driveMotorReversed, boolean turningMotorReversed,
             int absoluteEncoderId, double absoluteEncoderOffset, boolean absoluteEncoderReversed) {
-
-
-
+        kAbsoluteEncoderOffset = absoluteEncoderOffset;
+        kAbsoluteEncoderReversed = absoluteEncoderReversed;
         this.absoluteEncoder = new CANcoder(absoluteEncoderId);
 
         driveMotor = new CANSparkMax(driveMotorId, MotorType.kBrushless);
@@ -54,62 +59,76 @@ public class SwerveModule {
         resetEncoders();
     }
 
+    public SwerveModuleState getState() {
+        return new SwerveModuleState(getDriveVelocity(), new Rotation2d(getAbsoluteEncoderRad()));
+    }
+
+  public SwerveModulePosition getPosition(){
+    return( new SwerveModulePosition(getDrivePosition(), new Rotation2d(getAbsoluteEncoderRad())));
+    }
+    
+    public void setDesiredState(SwerveModuleState state) {
+        state = SwerveModuleState.optimize(state, getState().angle);
+        double desiredTurnSpeed = turningPidController.calculate(getAbsoluteEncoderRad(), state.angle.getRadians());
+        turningMotor.set(desiredTurnSpeed);
+        driveMotor.set(state.speedMetersPerSecond);
+
+        desiredState = state;
+        SmartDashboard.putString("Swerve[" + absoluteEncoder.getDeviceID() + "] state", state.toString());
+    }    
+
+    public void resetEncoders() {
+        driveEncoder.setPosition(0.0);
+        turningEncoder.setPosition(this.getAbsoluteEncoderRotations());
+    }
+    
+    public SwerveModuleState getDesiredState() {
+        return desiredState;
+    }
     public double getDrivePosition() {
         return driveEncoder.getPosition();
     }
 
-    public double getTurningPosition() {
-        return turningEncoder.getPosition();
-    }
 
     public double getDriveVelocity() {
         return driveEncoder.getVelocity();
     }
 
-    public double getTurningVelocity() {
-        return turningEncoder.getVelocity();
+    // public double getAbsoluteEncoderRad() {
+    //     // Get the absolute position of the encoder in degrees.
+    //     double absolutePositionDegrees = this.absoluteEncoder.getAbsolutePosition().getValue();
+    
+    //     // Convert degrees to radians
+    //     double radians = Math.toRadians(absolutePositionDegrees*360);
+    
+    
+    //     return radians;
+    // }
+    
+    public double getAbsoluteEncoderRotations() {
+        double angle = absoluteEncoder.getAbsolutePosition().getValueAsDouble(); // Returns percent of a full rotation
+        return angle * (kAbsoluteEncoderReversed ? -1.0 : 1.0); // Look up ternary or conditional operators in java
     }
-
-
 
     public double getAbsoluteEncoderRad() {
-        // Get the absolute position of the encoder in degrees.
-        double absolutePositionDegrees = this.absoluteEncoder.getAbsolutePosition().getValue();
-    
-        // Convert degrees to radians
-        double radians = Math.toRadians(absolutePositionDegrees*360);
-    
-    
-        return radians;
-    }
-    
-    
-    
-    
-
-    public void resetEncoders() {
-        driveEncoder.setPosition(0.0);
-        turningEncoder.setPosition(this.getAbsoluteEncoderRad());
+        double angle = absoluteEncoder.getAbsolutePosition().getValueAsDouble(); // Returns percent of a full rotation
+        angle = Units.rotationsToRadians(angle);
+        return angle * (kAbsoluteEncoderReversed ? -1.0 : 1.0); // Look up ternary or conditional operators in java
     }
     
 
-    public SwerveModuleState getState() {
-        return new SwerveModuleState(getDriveVelocity(), new Rotation2d(getTurningPosition()));
-    }
-  public SwerveModulePosition getPosition(){
-    return( new SwerveModulePosition(
-      getDrivePosition(), new Rotation2d(getTurningPosition())));
-  }
+    
 
-    public void setDesiredState(SwerveModuleState state) {
-        if (Math.abs(state.speedMetersPerSecond) < 0.001) {
-            stop();
-            return;
-        }
-        state = SwerveModuleState.optimize(state, getState().angle);
-        driveMotor.set(state.speedMetersPerSecond / DriveConstants.kPhysicalMaxSpeedMetersPerSecond);
-        turningMotor.set(turningPidController.calculate(getTurningPosition(), state.angle.getRadians()));
-    }
+
+    // public void setDesiredState(SwerveModuleState state) {
+    //     if (Math.abs(state.speedMetersPerSecond) < 0.001) {
+    //         stop();
+    //         return;
+    //     }
+    //     state = SwerveModuleState.optimize(state, getState().angle);
+    //     driveMotor.set(state.speedMetersPerSecond / DriveConstants.kPhysicalMaxSpeedMetersPerSecond);
+    //     turningMotor.set(turningPidController.calculate(getTurningPosition(), state.angle.getRadians()));
+    // }
 
     public void stop() {
         driveMotor.set(0);

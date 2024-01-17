@@ -114,10 +114,10 @@ public Rotation2d getInitRotation2d(SwerveModule swrvMod) {
      public void periodic() {
         // Used for Odometry purposes only, does not affect Teleop
     
-        SwerveModulePosition lf = new SwerveModulePosition(frontLeft.getDrivePosition(), new Rotation2d(frontLeft.getTurningPosition()));
-        SwerveModulePosition rf = new SwerveModulePosition(frontRight.getDrivePosition(), new Rotation2d(frontRight.getTurningPosition()));
-        SwerveModulePosition lb = new SwerveModulePosition(backLeft.getDrivePosition(), new Rotation2d(backLeft.getTurningPosition()));
-        SwerveModulePosition rb = new SwerveModulePosition(backRight.getDrivePosition(), new Rotation2d(backRight.getTurningPosition()));
+        SwerveModulePosition lf = new SwerveModulePosition(frontLeft.getDrivePosition(), new Rotation2d(frontLeft.getAbsoluteEncoderRad()));
+        SwerveModulePosition rf = new SwerveModulePosition(frontRight.getDrivePosition(), new Rotation2d(frontRight.getAbsoluteEncoderRad()));
+        SwerveModulePosition lb = new SwerveModulePosition(backLeft.getDrivePosition(), new Rotation2d(backLeft.getAbsoluteEncoderRad()));
+        SwerveModulePosition rb = new SwerveModulePosition(backRight.getDrivePosition(), new Rotation2d(backRight.getAbsoluteEncoderRad()));
     
         odometer.update(getRotation2d(),
                 new SwerveModulePosition[]{
@@ -125,10 +125,10 @@ public Rotation2d getInitRotation2d(SwerveModule swrvMod) {
                 });
     
         SmartDashboard.putNumber("Gyro:", getHeading());
-        SmartDashboard.putNumber("Left Front Swerve: ", frontLeft.getTurningPosition());
-        SmartDashboard.putNumber("Right Front Swerve: ", frontRight.getTurningPosition());
-        SmartDashboard.putNumber("Left Back Swerve: ", backLeft.getTurningPosition());
-        SmartDashboard.putNumber("Right Back Swerve: ", backRight.getTurningPosition());
+        SmartDashboard.putNumber("Left Front Swerve: ", frontLeft.getAbsoluteEncoderRotations());
+        SmartDashboard.putNumber("Right Front Swerve: ", frontRight.getAbsoluteEncoderRotations());
+        SmartDashboard.putNumber("Left Back Swerve: ", backLeft.getAbsoluteEncoderRotations());
+        SmartDashboard.putNumber("Right Back Swerve: ", backRight.getAbsoluteEncoderRotations());
     
         SmartDashboard.putNumber("Left Front Swerve Encoder: ", frontLeft.getAbsoluteEncoderRad());
         SmartDashboard.putNumber("Right Front Swerve Encoder: ", frontRight.getAbsoluteEncoderRad());
